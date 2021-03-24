@@ -28,6 +28,26 @@ for feature_name in CATEGORICAL_COLUMNS:
 for feature_name in NUMERIC_COLUMNS:
     feature_columns.append(tf.feature_column.numeric_column(feature_name, dtype=tf.float32))
 
-print(feature_columns)
+## Higher order funtion for input function
+def make_input_function(data_df, label_df, num_epochs=10, shuffle=True, batch_size=32):
+    def input_function():
+        ds = tf.data.Dataset.from_tensor_slices((dict(data_df), label_df))
+        if shuffle:
+            ds = ds.shuffle(1000)
+        ds = ds.batch(batch_size).repeat(num_epochs)
+        return ds
+    return input_function
 
-print(dftrain['embark_town'].unique())
+train_input_fn = make_input_function(dftrain, y_train)
+eval_input_fn = make_input_function(dfeval, y_eval, num_epochs=1, shuffle=False)
+
+linear_est = tf.estimator.LinearClassifier(feature_columns=feature_columns)
+eval_result = linear_est.evaluate(eval_input_fn)
+
+clear_output()
+print(eval_result['accuracy'])
+
+result = list(linear_est.predict(eval_input_fn))
+
+print(result)
+
